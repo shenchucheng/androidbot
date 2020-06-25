@@ -6,26 +6,26 @@
 
 
 import time
-import uiautomator2
-
 from functools import partial
 
+from .tools import unlock, Device, platform
 
-from .tools import unlock
 
-
-def start_alipay(self):
+def alipay_start(self):
     self.unlock()
     self.app_start("com.eg.android.AlipayGphone")
     self.app_wait("com.eg.android.AlipayGphone")
-    self.ali_home()
+    self.alipay_home()
     self(resourceId="com.alipay.android.phone.openplatform:id/tab_description").click()
     self.app_wait("com.eg.android.AlipayGphone")
 
 
-def energy_friend(self, start=1, end=90, max_tries=10):
-    self.start_alipay()
+def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
+    self.alipay_start()
     self(text="蚂蚁森林").click()
+    if mode == 0:
+        pass
+
     while 1:
         r = self(text="查看更多好友")
         if r.exists:
@@ -41,6 +41,7 @@ def energy_friend(self, start=1, end=90, max_tries=10):
         r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]'.format(i))
         r.wait(3)
         if r.exists:
+            if r.
             r.click()
             self.app_wait("com.eg.android.AlipayGphone")
             while 1:
@@ -50,7 +51,7 @@ def energy_friend(self, start=1, end=90, max_tries=10):
                     time.sleep(0.5)
                 else:
                     break
-            self.ali_back()
+            self.alipay_back()
             if i < end:
                 i += 1
             else:
@@ -63,13 +64,14 @@ def energy_friend(self, start=1, end=90, max_tries=10):
     
 
 
-def ali_back(self):
+def alipay_back(self):
     r = self(resourceId="com.alipay.mobile.nebula:id/h5_nav_back")
     if r.exists:
         r.click()
         self.app_wait("com.eg.android.AlipayGphone")
 
-def ali_home(self):
+
+def alipay_home(self):
     r = self(text="")
     # r = self.xpath('//*[@resource-id="com.alipay.mobile.nebula:id/h5_nav_options"]/android.widget.LinearLayout[1]/android.widget.RelativeLayout[1]/android.widget.RelativeLayout[1]/android.widget.FrameLayout[2]')
     if r.exists:
@@ -77,16 +79,21 @@ def ali_home(self):
         self.app_wait("com.eg.android.AlipayGphone")
 
 
+def load(self):
+    self.alipay_start  = alipay_start
+    self.alipay_home   = alipay_home
+    self.alipay_back   = alipay_back
+    self.alipay_energy = alipay_energy
+    
+
 def main():
-    d = uiautomator2.connect('0.0.0.0')
-    d.start_alipay  = partial(start_alipay,  self=d)
-    d.ali_back      = partial(ali_back,      self=d)
-    d.unlock        = partial(unlock,        self=d)
-    d.ali_home      = partial(ali_home,      self=d)
-    d.energy_friend = partial(energy_friend, self=d)
-    d.energy_friend()
+    if platform() == 'termux':
+        d = Device('0.0.0.0')
+    else:
+        d = Device()
+    d.alipay_energy()
 
-
+load(Device)
 if __name__ == "__main__":
     main()
      
