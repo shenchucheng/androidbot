@@ -5,6 +5,7 @@
 # Created Time: 2020-06-24 22:15:20
 
 
+import time
 import uiautomator2
 
 from functools import partial
@@ -22,7 +23,7 @@ def start_alipay(self):
     self.app_wait("com.eg.android.AlipayGphone")
 
 
-def energy_friend(self, start=0, end=90, max_tries=10):
+def energy_friend(self, start=1, end=90, max_tries=10):
     self.start_alipay()
     self(text="蚂蚁森林").click()
     while 1:
@@ -38,26 +39,27 @@ def energy_friend(self, start=0, end=90, max_tries=10):
     i = start
     while 1:
         r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]'.format(i))
-        if r.exists(timeout=3):
+        r.wait(3)
+        if r.exists:
             r.click()
             self.app_wait("com.eg.android.AlipayGphone")
-        while 1:
-            r   = d(textContains="收集能量")
-            if r.exists(timeout=3):
-                r.click()
-                time.sleep(0.5)
+            while 1:
+                r   = self(textContains="收集能量")
+                if r.exists(timeout=3):
+                    r.click()
+                    time.sleep(0.5)
+                else:
+                    break
+            self.ali_back()
+            if i < end:
+                i += 1
             else:
                 break
-        self.ali_back()
-        if i < end:
-            i += 1
+            self.swipe_ext("up", 0.05)
+            tries = 0
         else:
-            break
-        self.swipe_ext("up", 0.05)
-        tries = 0
-    else:
-        self.swipe_ext("up", 0.05)
-        tries += 1
+            self.swipe_ext("up", 0.5)
+            tries += 1
     
 
 
@@ -76,9 +78,10 @@ def ali_home(self):
 
 
 def main():
-    d = uiautomator2.connect()
+    d = uiautomator2.connect('0.0.0.0')
     d.start_alipay  = partial(start_alipay,  self=d)
     d.ali_back      = partial(ali_back,      self=d)
+    d.unlock        = partial(unlock,        self=d)
     d.ali_home      = partial(ali_home,      self=d)
     d.energy_friend = partial(energy_friend, self=d)
     d.energy_friend()
