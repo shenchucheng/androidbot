@@ -8,7 +8,7 @@
 import time
 from functools import partial
 
-from .tools import unlock, Device, termux_local_connect
+from .tools import Device, unlock, termux_local_connect, logger
 
 
 def alipay_start(self):
@@ -23,34 +23,69 @@ def alipay_start(self):
 def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
     self.alipay_start()
     self(text="蚂蚁森林").click()
-    if mode == 0:
-        pass
 
+    # 收取自己的能量
+    while 1:
+        r = self(textContains="收集能量")
+        if r.wait(timeout=3):
+            text = r.get_text()
+            r.click()
+            logger.info("自己：{}".format(text))
+        else:
+            break
+    if mode == 0:
+        return
+    
+    # 查看所有好友，待改善
     while 1:
         r = self(text="查看更多好友")
         if r.exists:
             self.swipe_ext('up',0.9)
             r.click()
+            self.app_wait("com.eg.android.AlipayGphone")
             break
         else:
             time.sleep(2)
-    self.app_wait("com.eg.android.AlipayGphone")
+
+    # 获取自己的排名
+    r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[1]/android.view.View[1]/android.view.View[1]/android.view.View[1]')
+    if r.wait(timeout=5):
+        num = int(r.get_text())
+    else:
+        raise
+
     tries = 0
     i = start
     while 1:
-        r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]'.format(i))
-        r.wait(3)
-        if r.exists:
-            r.click()
-            self.app_wait("com.eg.android.AlipayGphone")
-            while 1:
-                r   = self(textContains="收集能量")
-                if r.exists(timeout=3):
-                    r.click()
-                    time.sleep(0.5)
-                else:
-                    break
-            self.alipay_back()
+        if i == num:
+            i += 1
+            continue
+        r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]/android.view.View[5]'.format(i))
+        if r.wait(timeout=3):
+            p = r.screenshot()
+            p = p.convert('L')
+            b = l = 0
+            for c in p.getdata():
+                l += 1
+                if c > 240:
+                    b += 1
+            p = b/l  # 空白率
+            print(p)
+            if p < 0.9:    
+                r.click()
+                self.app_wait("com.eg.android.AlipayGphone")
+                while 1:
+                    r = self(textContains="收集能量")
+                    if r.wait(timeout=2):
+                        r.click()
+                        time.sleep(0.5)
+                    else:
+                        break
+                r = self(text='\xa0')
+                r.click_exists()
+                self.alipay_back()
+
+
             if i < end:
                 i += 1
             else:
