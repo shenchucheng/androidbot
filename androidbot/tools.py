@@ -10,7 +10,7 @@ import logging
 import os
 
 
-from uiautomator2 import Device
+from uiautomator2 import Device, _fix_wifi_addr
 
 
 logger = logging.getLogger('andriodbot')
@@ -35,7 +35,7 @@ def unlock(self, passwd=[]):
         self.screen_on()
     # r = self(resourceId="com.android.systemui:id/qs_frame")
     # if r.wait(timeout=3):
-    if self.is_lock: 
+    if self.is_lock(): 
         passwd = passwd or self.settings.get("passwd") or __passwd
         self.swipe_ext("up", 0.5)
         time.sleep(0.5)
@@ -48,6 +48,11 @@ def platform():
         return 'termux'
 
 
+def termux_local_connect(D, **kwargs):
+    if platform() == 'termux':
+        return D(_fix_wifi_addr('0.0.0.0'), **kwargs)
+
+
 def load(self):
     self.is_screen_on = is_screen_on
     self.is_lock      = is_lock
@@ -55,11 +60,7 @@ def load(self):
 
 
 def main():
-    if platform == 'termux':
-        d = Device('0.0.0.0')
-    else:
-        d = Device()
-
+    d = termux_local_connect(Device) or Device()
     if d.is_screen_on():
         d.screen_off()
     r = d.unlock()

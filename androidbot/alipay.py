@@ -8,7 +8,7 @@
 import time
 from functools import partial
 
-from .tools import unlock, Device, platform
+from .tools import unlock, Device, termux_local_connect
 
 
 def alipay_start(self):
@@ -41,7 +41,6 @@ def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
         r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]'.format(i))
         r.wait(3)
         if r.exists:
-            if r.
             r.click()
             self.app_wait("com.eg.android.AlipayGphone")
             while 1:
@@ -87,10 +86,7 @@ def load(self):
     
 
 def main():
-    if platform() == 'termux':
-        d = Device('0.0.0.0')
-    else:
-        d = Device()
+    d = termux_local_connect(Device) or Device()
     d.alipay_energy()
 
 load(Device)
