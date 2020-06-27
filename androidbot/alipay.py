@@ -5,7 +5,10 @@
 # Created Time: 2020-06-24 22:15:20
 
 
+import os
+import sys
 import time
+
 from functools import partial
 
 from .tools import Device, unlock, termux_local_connect, logger
@@ -25,21 +28,25 @@ def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
     self(text="蚂蚁森林").click()
 
     # 收取自己的能量
-    while 1:
-        r = self(textContains="收集能量")
-        if r.wait(timeout=3):
-            text = r.get_text()
-            r.click()
-            logger.info("自己：{}".format(text))
-        else:
-            break
     if mode == 0:
-        return
+        while 1:
+            r = self(textContains="收集能量")
+            if r.wait(timeout=3):
+                text = r.get_text()
+                r.click()
+                logger.info("自己：{}".format(text))
+            else:
+                r = self.xpath('//android.webkit.WebView/android.view.View[2]/android.view.View[1]/android.view.View[1]/android.view.View[2]')
+                if r.wait(timeout=1):
+                    r.click()
+                    continue
+                else:
+                    return
     
     # 查看所有好友，待改善
     while 1:
         r = self(text="查看更多好友")
-        if r.exists:
+        if r.wait(timeout=5):
             self.swipe_ext('up',0.9)
             r.click()
             self.app_wait("com.eg.android.AlipayGphone")
@@ -52,6 +59,7 @@ def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
     if r.wait(timeout=5):
         num = int(r.get_text())
     else:
+        # retry
         raise
 
     tries = 0
@@ -71,7 +79,9 @@ def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
                     b += 1
             p = b/l  # 空白率
             print(p)
-            if p < 0.9:    
+            if p < 0.9 and not r.elem.getchildren(): 
+                # 等待收取时，time_info = r.elem.getchildren() 子节点列表
+                # 此时包含列表首值 time_info.text 返回成熟等待时间
                 r.click()
                 self.app_wait("com.eg.android.AlipayGphone")
                 while 1:
@@ -93,8 +103,9 @@ def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
             self.swipe_ext("up", 0.05)
             tries = 0
         else:
-            self.swipe_ext("up", 0.5)
+            self.swipe_ext("up", 0.4)
             tries += 1
+    self.screen_off()
     
 
 
@@ -122,7 +133,9 @@ def load(self):
 
 def main():
     d = termux_local_connect(Device) or Device()
-    d.alipay_energy()
+    mode = 0 if  '--self' in sys.argv else 1
+    d.alipay_energy(mode=mode)
+
 
 load(Device)
 if __name__ == "__main__":
