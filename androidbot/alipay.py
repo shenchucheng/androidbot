@@ -23,7 +23,7 @@ def alipay_start(self):
     self.app_wait("com.eg.android.AlipayGphone")
 
 
-def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
+def alipay_energy(self, mode=2, start=1, end=90, max_tries=10):
     self.alipay_start()
     self(text="蚂蚁森林").click()
 
@@ -41,8 +41,24 @@ def alipay_energy(self, mode=1, start=1, end=90, max_tries=10):
                     r.click()
                     continue
                 else:
+                    self.screen_off()
                     return
-    
+    elif mode == 1:
+        for i in ['合种', '今日排行']:
+            self(text=i).click_exists(timeout=5)
+        r =self(text='颖灵')
+        if r.wait(timeout=5):
+            r.left().click_exists(timeout=3)
+        for _ in range(3):
+            for i in ['浇水', '66克', '浇水送祝福']:
+                self(text=i).click_exists(timeout=3)
+        self.alipay_home()
+        self.alipay_back()
+        self.alipay_back()
+        self.screen_off()
+        return
+
+
     # 查看所有好友，待改善
     while 1:
         r = self(text="查看更多好友")
@@ -133,7 +149,7 @@ def load(self):
 
 def main():
     d = termux_local_connect(Device) or Device()
-    mode = 0 if  '--self' in sys.argv else 1
+    mode = 0 if  '--self' in sys.argv else 1 if '--love' in sys.argv else 2
     d.alipay_energy(mode=mode)
 
 
