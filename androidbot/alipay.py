@@ -76,7 +76,7 @@ def alipay_energy(self, mode=2, start=1, end=90, max_tries=10):
         num = int(r.get_text())
     else:
         # retry
-        raise
+        num = 1 or 2 or 3
 
     tries = 0
     i = start
