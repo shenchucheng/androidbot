@@ -14,13 +14,23 @@ from functools import partial
 from .tools import Device, unlock, termux_local_connect, logger
 
 
-def alipay_start(self):
+def alipay_start(self, package='com.eg.android.AlipayGphone', init=False, max_tries=5):
     self.unlock()
-    self.app_start("com.eg.android.AlipayGphone")
-    self.app_wait("com.eg.android.AlipayGphone")
-    self.alipay_home()
-    self(resourceId="com.alipay.android.phone.openplatform:id/tab_description").click()
-    self.app_wait("com.eg.android.AlipayGphone")
+    if init:
+        self.session(package)
+        self.app_wait(package)
+    else:
+        self.app_start(package)
+        r = self(resourceId="com.alipay.android.phone.openplatform:id/tab_description")
+        while 1:
+            if max_tries <= 0:
+                self.alipay_start(init=True)
+            elif r.wait(timeout=2):
+                r.click()
+                break
+            else:
+                self.press('back')
+                max_tries -= 1
 
 
 def alipay_energy(self, mode=2, start=1, end=90, max_tries=10):
@@ -44,8 +54,19 @@ def alipay_energy(self, mode=2, start=1, end=90, max_tries=10):
                     self.screen_off()
                     return
     elif mode == 1:
-        for i in ['合种', '今日排行']:
-            self(text=i).click_exists(timeout=5)
+        r = self(text='合种')
+        r.click_exists(timeout=5)
+        r = self.xpath('//*[@resource-id="J-dom"]/android.view.View[1]/android.view.View[6]/android.view.View[1]/android.view.View[1]')
+        r.click_exists(timeout=5)
+        if 0:
+            self(text='520')
+        else:
+            if self(text='在该合种浇水已达上限，明天继续哟').wait(timeout=1):
+                pass
+            self(text='知道了').click()
+        r = self(text='今日排行')
+        if r.wait(timeout=5):
+            r.click()
         r =self(text='颖灵')
         if r.wait(timeout=5):
             r.left().click_exists(timeout=3)

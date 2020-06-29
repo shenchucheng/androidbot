@@ -24,7 +24,9 @@ def is_screen_on(self):
 
 
 def is_lock(self):
-    return self.info.get('currentPackageName') ==  'com.android.systemui'
+    packages = {'com.android.systemui', 'android'}
+    package = self.info.get('currentPackageName')
+    return package in packages 
 
 
 def unlock(self, passwd=[]):
@@ -40,6 +42,8 @@ def unlock(self, passwd=[]):
         self.swipe_ext("up", 0.5)
         time.sleep(0.5)
         self.swipe_points(passwd, 0.1)
+    else:
+        print('unlock')
 
 
 def platform():
