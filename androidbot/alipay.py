@@ -97,18 +97,18 @@ def alipay_energy(self, mode=2, start=1, end=90, max_tries=10):
             print(p)
             if p < 0.9 and not r.elem.getchildren(): 
                 # 等待收取时，time_info = r.elem.getchildren() 子节点列表
-                # 此时包含列表首值 time_info.text 返回成熟等待时间
+                # 此时包含列表首值 time_info.getchildren().get('text')
+                # 返回成熟等待时间 11'
                 r.click()
                 self.app_wait("com.eg.android.AlipayGphone")
-                while 1:
-                    r = self(textContains="收集能量")
-                    if r.wait(timeout=2):
-                        r.click()
-                        time.sleep(0.5)
-                    else:
-                        break
-                r = self(text='\xa0')
-                r.click_exists()
+                r = self(textContains="收集能量")
+                if r.wait(timeout=2):
+                    for _ in r:
+                        r.click_exists(timeout=1)
+                        time.sleep(0.3)
+                else:
+                    r = self(text='\xa0')
+                    r.click_exists()
                 self.alipay_back()
 
 
