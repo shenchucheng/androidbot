@@ -14,7 +14,7 @@ from functools import partial
 from .tools import Device, unlock, termux_local_connect, logger
 
 
-def alipay_start(self, package='com.eg.android.AlipayGphone', init=False, max_tries=5):
+def alipay_start(self, package='com.eg.android.AlipayGphone', init=False, max_tries=3):
     self.unlock()
     if init:
         self.session(package)
@@ -25,7 +25,8 @@ def alipay_start(self, package='com.eg.android.AlipayGphone', init=False, max_tr
         while 1:
             if max_tries <= 0:
                 self.alipay_start(init=True)
-            elif r.wait(timeout=2):
+                break
+            elif r.wait(timeout=1):
                 r.click()
                 break
             else:
