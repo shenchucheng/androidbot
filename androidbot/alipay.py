@@ -9,7 +9,6 @@ import os
 import sys
 import time
 
-from functools import partial
 
 from .tools import Device, unlock, termux_local_connect, logger
 
@@ -36,7 +35,7 @@ def alipay_start(self, package='com.eg.android.AlipayGphone', init=False, max_tr
 
 
 def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[],
-        recircle=False, max_time=1800, start_time=0):
+        recircle=False, max_time=1500, start_time=0):
     start_time = start_time or time.time()
     if recircle < 2:
         self.alipay_start()
@@ -44,20 +43,24 @@ def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[],
 
     # 收取自己的能量
     if mode == 0:
+        tries = 1
         while 1:
             r = self(textContains="收集能量")
-            if r.wait(timeout=3):
+            if r.wait(timeout=10):
                 text = r.get_text()
                 r.click()
                 logger.info("自己：{}".format(text))
+                tries = 0
             else:
-                r = self.xpath('//android.webkit.WebView/android.view.View[2]/android.view.View[1]/android.view.View[1]/android.view.View[2]')
-                if r.wait(timeout=1):
-                    r.click()
-                    continue
+                if not tries:
+                    break
+                elif tries < 10:
+                    tries += 1
+                    print(tries)
                 else:
-                    self.screen_off()
-                    return
+                    break
+        self.screen_off()
+        return
 
     elif mode == 1:
         r = self(text='合种')
