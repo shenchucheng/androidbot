@@ -14,8 +14,7 @@ from functools import partial
 from .tools import Device, unlock, termux_local_connect, logger
 
 
-def alipay_start(self, package='com.eg.android.AlipayGphone', init=False,
-        max_tries=4, recircle=False):
+def alipay_start(self, package='com.eg.android.AlipayGphone', init=False, max_tries=4):
     self.unlock()
     if init:
         self.session(package)
@@ -36,9 +35,12 @@ def alipay_start(self, package='com.eg.android.AlipayGphone', init=False,
                 max_tries -= 1
 
 
-def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[]):
-    self.alipay_start()
-    self(text="蚂蚁森林").click()
+def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[],
+        recircle=False, max_time=1800, start_time=0):
+    start_time = start_time or time.time()
+    if recircle < 2:
+        self.alipay_start()
+        self(text="蚂蚁森林").click()
 
     # 收取自己的能量
     if mode == 0:
@@ -86,44 +88,44 @@ def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[]):
 
 
     # 查看所有好友，待改善
-    while 1:
-        r = self(text="查看更多好友")
+    first = recircle < 2
+    r = self(text="查看更多好友")
+    while first:
         if r.wait(timeout=5):
-            self.swipe_ext('up',0.9)
+            self.swipe_ext('up',0.8)
+            time.sleep(0.5)
+            self.swipe_ext('up', 0.5)
             r.click()
             self.app_wait("com.eg.android.AlipayGphone")
+            # 获取自己的排名
+            r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[1]/android.view.View[1]')
+
+            r.wait()
+            elem = r.elem.getchildren()
+            num = elem[0].getchildren()
+            if num:
+                num = num[0].get('text')
+                num = int(num)
+            else:
+                user = elem[2].getchildren()[0].getchildren()[0].get('text')
+                for i in [1, 2]:
+                    r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]'.format(i))
+                    r.wait()
+                    elem = r.elem.getchildren()
+                    if elem[2].getchildren()[0].getchildren()[0].get('text') == user:
+                        num = i
+                num = num if num else 3
+            logger.info('我的排名:' + str(num))
+            exclude.append(num)
             break
         else:
             time.sleep(2)
-
-    # 获取自己的排名
-    # r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[1]/android.view.View[1]/android.view.View[1]/android.view.View[1]')
-    r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[1]/android.view.View[1]')
-
-    r.wait()
-    elem = r.elem.getchildren()
-    num = elem[0].getchildren()
-    if num:
-        num = num[0].get('text')
-        num = int(num)
-    else:
-        user = elem[2].getchildren()[0].getchildren()[0].get('text')
-        for i in [1, 2]:
-            r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]'.format(i))
-            r.wait()
-            elem = r.elem.getchildren()
-            if elem[2].getchildren()[0].getchildren()[0].get('text') == user:
-                num = i
-        num = num if num else 3
-    logger.info('我的排名:' + str(num))
-    exclude.append(num)
-    tries = 0
     i = start
-
-    def __to_top():
-        self.swipe_ext('down', 0.5)
-
+    tries = 0
     while 1:
+        if time.time() - start_time > max_time:
+            self.screen_off()
+            return
         if i in exclude:
             i += 1
             continue
@@ -168,9 +170,13 @@ def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[]):
     
     if recircle:
         if end - start - len(exclude) > 5:
-            for i in range(10):
-                self.swipe_ext('down', 0.5)
-                self.alipay_energy(start=start, end=end, exclude=exclude, mode=mode, recircle=True)
+            for i in range(5):
+                self.swipe_ext('down', 0.7)
+                time.sleep(0.1)
+            recircle += 1
+            self.alipay_energy(start=start, end=end, exclude=exclude,
+                        mode=mode, recircle=recircle, max_time=max_time,
+                        start_time=start_time, max_tries=10)
         else:
             self.screen_off()
     else:
@@ -201,8 +207,10 @@ def load(self):
 
 def main():
     d = termux_local_connect(Device) or Device()
-    mode = 0 if  '--self' in sys.argv else 1 if '--love' in sys.argv else 2
-    d.alipay_energy(mode=mode)
+    argv = sys.argv
+    mode = 0 if  '--self' in argv else 1 if '--love' in argv else 2
+    recircle = True if '--recircle' in argv else False
+    d.alipay_energy(mode=mode, recircle=recircle)
 
 
 load(Device)
