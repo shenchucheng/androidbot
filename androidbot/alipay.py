@@ -13,7 +13,8 @@ import time
 from .tools import Device, unlock, termux_local_connect, logger
 
 
-def alipay_start(self, package='com.eg.android.AlipayGphone', init=False, max_tries=4):
+def alipay_start(self, init=False, max_tries=4):
+    package='com.eg.android.AlipayGphone',
     self.unlock()
     if init:
         self.session(package)
@@ -36,10 +37,13 @@ def alipay_start(self, package='com.eg.android.AlipayGphone', init=False, max_tr
 
 def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[],
         recircle=False, max_time=1500, start_time=0):
-    start_time = start_time or time.time()
+    
+    # 进入蚂蚁森林
     if recircle < 2:
         self.alipay_start()
         self(text="蚂蚁森林").click()
+    start_time = start_time or time.time()
+    tries = 0
 
     # 收取自己的能量
     if mode == 0:
@@ -84,26 +88,41 @@ def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[],
             for i in ['浇水', '66克', '浇水送祝福']:
                 self(text=i).click_exists(timeout=3)
         self.alipay_home()
-        self.alipay_back()
-        self.alipay_back()
+        self.press('back')
+        self.press('back')
         self.screen_off()
         return
 
+    def noexists_raise(timeout=1):
+        while 1:
+            if r.wait(timeout=timeout):
+                tries = 0
+                    return True
+                else:
+                    if tries >= max_tries:
+                        raise
+                    tries += 1
+                    
+    def __friends(recircle):
+        first = recircle < 2
+        if first:
+            r = self(text="查看更多好友")
+            # noexists_raise()
+            while 1:
+                if self.is_onscreen(r):
+                    r.click()
+                    tries = 0
+                    break
+                else:
+                    if tries >= max_tries:
+                        raise
+                    tries += 1
+                    self.swipe_ext('up', 0.5)
 
-    # 查看所有好友，待改善
-    first = recircle < 2
-    r = self(text="查看更多好友")
-    while first:
-        if r.wait(timeout=5):
-            self.swipe_ext('up',0.8)
-            time.sleep(0.5)
-            self.swipe_ext('up', 0.5)
-            r.click()
-            self.app_wait("com.eg.android.AlipayGphone")
-            # 获取自己的排名
+            # 获取自己排名
             r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[1]/android.view.View[1]')
 
-            r.wait()
+            # r.wait()
             elem = r.elem.getchildren()
             num = elem[0].getchildren()
             if num:
@@ -113,85 +132,119 @@ def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[],
                 user = elem[2].getchildren()[0].getchildren()[0].get('text')
                 for i in [1, 2]:
                     r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]'.format(i))
-                    r.wait()
+                    # r.wait()
                     elem = r.elem.getchildren()
                     if elem[2].getchildren()[0].getchildren()[0].get('text') == user:
                         num = i
                 num = num if num else 3
             logger.info('我的排名:' + str(num))
             exclude.append(num)
-            break
-        else:
-            time.sleep(2)
-    i = start
-    tries = 0
-    while 1:
-        if time.time() - start_time > max_time:
-            self.screen_off()
-            return
-        if i in exclude:
-            i += 1
-            continue
-        r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]/android.view.View[5]'.format(i))
-        if r.wait(timeout=3):
-            p = r.screenshot()
-            p = p.convert('L')
-            b = l = 0
-            for c in p.getdata():
-                l += 1
-                if c > 240:
-                    b += 1
-            p = b/l  # 空白率
-            print(p)
-            if p < 0.9 and not r.elem.getchildren(): 
-                # 等待收取时，time_info = r.elem.getchildren() 子节点列表
-                # 此时包含列表首值 time_info.getchildren().get('text')
-                # 返回成熟等待时间 11'
-                r.click()
-                self.app_wait("com.eg.android.AlipayGphone")
-                r = self(textContains="收集能量")
-                if r.wait(timeout=2):
-                    for _ in r:
-                        r.click_exists(timeout=1)
-                        time.sleep(0.3)
-                    exclude.append(i)
+        
+        r = self(text="没有更多了")
+        __max_tries = 20
+        while 1:
+            if r.wait(timeout=0.1):
+                if self.is_onscreen(r):
+                    tries = 0
+                    break
                 else:
-                    r = self(text='\xa0')
-                    r.click_exists()
-                self.press('back')
-
-            if i < end:
-                i += 1
+                    if tries > __max_tries:
+                        raise
+                    self.swipe_ext('up', 0.6)
+                    tries += 1
             else:
-                break
-            self.swipe_ext("up", 0.05)
-            tries = 0
-        else:
-            exclude.append(i)
-            self.swipe_ext("up", 0.4)
-            tries += 1
-    
-    if recircle:
-        if end - start - len(exclude) > 5:
-            for i in range(5):
-                self.swipe_ext('down', 0.7)
-                time.sleep(0.1)
-            recircle += 1
-            self.alipay_energy(start=start, end=end, exclude=exclude,
-                        mode=mode, recircle=recircle, max_time=max_time,
-                        start_time=start_time, max_tries=10)
+                if tries > __max_tries:
+                    raise
+                self.swipe_ext('up', 0.6)
+                tries += 1
+
+        r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[1]/android.view.View[1]')
+        while 1:
+            if r.wait(timeout=0.1):
+                if self.is_onscreen(r):
+                    tries = 0
+                    break
+                else:
+                    if tries > __max_tries:
+                        raise
+                    self.swipe_ext('down', 0.6)
+                    tries += 1
+            else:
+                if tries > __max_tries:
+                    raise
+                self.swipe_ext('down', 0.6)
+                tries += 1
+
+        r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]')
+        elem = r.elem
+        for t in elem.getchildren():
+            cs = t.getchildren():
+            c = cs[4].getchildren()
+            if c:
+                exclude.append(c[0].get('text'))
+           
+        i = start
+        tries = 0
+        while 1:
+            if time.time() - start_time > max_time:
+                self.screen_off()
+                return
+            if i in exclude:
+                i += 1
+                continue
+            r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]/android.view.View[{}]/android.view.View[5]'.format(i))
+            if r.wait(timeout=3):
+                p = r.screenshot()
+                p = p.convert('L')
+                b = l = 0
+                for c in p.getdata():
+                    l += 1
+                    if c > 240:
+                        b += 1
+                p = b/l  # 空白率
+                print(p)
+                if p < 0.9 and not r.elem.getchildren(): 
+                    # 等待收取时，time_info = r.elem.getchildren() 子节点列表
+                    # 此时包含列表首值 time_info.getchildren().get('text')
+                    # 返回成熟等待时间 11'
+                    r.click()
+                    self.app_wait("com.eg.android.AlipayGphone")
+                    r = self(textContains="收集能量")
+                    if r.wait(timeout=2):
+                        for _ in r:
+                            r.click_exists(timeout=1)
+                            time.sleep(0.3)
+                        exclude.append(i)
+                    else:
+                        r = self(text='\xa0')
+                        r.click_exists()
+                    self.press('back')
+
+                if i < end:
+                    i += 1
+                else:
+                    break
+                self.swipe_ext("up", 0.05)
+                tries = 0
+            else:
+                exclude.append(i)
+                self.swipe_ext("up", 0.4)
+                tries += 1
+        
+        if recircle:
+            if end - start - len(exclude) > 5:
+                for i in range(5):
+                    self.swipe_ext('down', 0.7)
+                    time.sleep(0.1)
+                recircle += 1
+                self.alipay_energy(start=start, end=end, exclude=exclude,
+                            mode=mode, recircle=recircle, max_time=max_time,
+                            start_time=start_time, max_tries=10)
+            else:
+                self.screen_off()
         else:
             self.screen_off()
-    else:
-        self.screen_off()
     
-
-def alipay_back(self):
-    r = self(resourceId="com.alipay.mobile.nebula:id/h5_nav_back")
-    if r.exists:
-        r.click()
-        self.app_wait("com.eg.android.AlipayGphone")
-
 
 def alipay_home(self):
     r = self(text="")
@@ -204,7 +257,6 @@ def alipay_home(self):
 def load(self):
     self.alipay_start  = alipay_start
     self.alipay_home   = alipay_home
-    self.alipay_back   = alipay_back
     self.alipay_energy = alipay_energy
     
 

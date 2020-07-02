@@ -57,8 +57,24 @@ def termux_local_connect(D, **kwargs):
         return D(_fix_wifi_addr('0.0.0.0'), **kwargs)
 
 
+def is_onscreen(self, r):
+    x, y = r.center()
+    if y < 10 or x < 10:
+        return False
+    size = self.__dict__.get('windows_size_info')
+    if size:
+        w, h = size
+    else:
+        w, h = self.window_size()
+        self.window_size_info = (w, h)
+    if h - y < 10 or w - x < 10:
+        return False
+    return True
+
+
 def load(self):
     self.is_screen_on = is_screen_on
+    self.is_onscreen = is_onscreen
     self.is_lock      = is_lock
     self.unlock       = unlock
 
