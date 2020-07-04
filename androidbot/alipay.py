@@ -21,6 +21,21 @@ images_dict = {
     }
 
 
+def noexists_raise(timeout=1):
+    while 1:
+        if r.wait(timeout=timeout):
+            tries = 0
+            return True
+        else:
+            if tries >= max_tries:
+                raise
+            tries += 1
+
+      
+def get_bounds(elem):
+    return eval(elem.attrib.get('bounds').replace('][', ','))
+
+
 # 获取好友列表
 def friends_list(self):
     r = self(text="没有更多了")
@@ -36,13 +51,13 @@ def friends_list(self):
     i = 1
     l = []
     for _ in elem:
-        r = get_friend_info(_, i)
+        r = friends_info(_, i)
         i = r[0] + 1
         l.append(r)
     return l
 
 
-def get_friend_info(friend, i):
+def friends_info(friend, i):
     c = friend.getchildren()
     c1 = c[0].getchildren()
     if c1:
@@ -63,10 +78,6 @@ def get_friend_info(friend, i):
     return (c1, c2, c3)
 
 
-def get_bounds(elem):
-    return eval(elem.attrib.get('bounds').replace('][', ','))
-
-
 # 获取当前可视范围
 def friends_current(self, first=False, num=False):
     r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]')
@@ -75,7 +86,7 @@ def friends_current(self, first=False, num=False):
     e0 = elem[0]
     p0 = get_bounds(e0)
     if first:
-        return (get_friend_info(e0, 1), p0)
+        return (friends_info(e0, 1), p0)
     l = []
     i = 2
     t1 = t2 = 0
@@ -87,7 +98,7 @@ def friends_current(self, first=False, num=False):
         if c2 > 0:
             t2 += 1
         if all((c1>0, c2>0)):
-            l.append((get_friend_info(e, i), p))
+            l.append((friends_info(e, i), p))
         i += 1
         (e0, p0) = (e, p)
     if num:
@@ -140,17 +151,6 @@ def energy_next_page(self):
     self.swipe_ext('up', 0.5)
      
         
-def noexists_raise(timeout=1):
-    while 1:
-        if r.wait(timeout=timeout):
-            tries = 0
-            return True
-        else:
-            if tries >= max_tries:
-                raise
-            tries += 1
-
-      
 def energy_friends(self, timeout=2, max_tries=5):
     tries = 0
     r = self(text="查看更多好友")
@@ -174,9 +174,45 @@ def energy_friends(self, timeout=2, max_tries=5):
             self.swipe_ext('up', 0.6)
 
 
-def alipay_energy(self, plus=0):
+def energy_self(self, max_tries=10):
+    tries = 1
+    while 1:
+        r = self(textContains="收集能量")
+        if r.wait(timeout=10):
+            text = r.get_text()
+            r.click()
+            logger.info("自己：{}".format(text))
+            tries = 0
+        else:
+            if not tries:
+                break
+            elif tries < max_tries:
+                tries += 1
+                print(tries)
+            else:
+                break
+
+
+def energy_love(self):
+    pass
+
+
+def alipay_energy(self, mode=0, plus=0):
     self.alipay_start()
     self(text='蚂蚁森林').click()
+    if mode in [1, 3]:
+        energy_self(self)
+        if mode == 1:
+            self.press('back')
+            self.press('home')
+            self.screen_off()
+            return
+
+    if mode in [2, 3]:
+        energy_love(self)
+        if mode == 2:
+            return
+
     energy_friends(self)
     time.sleep(0.5)
     self(text='总排行榜').click()
@@ -214,143 +250,6 @@ def load(self):
     self.load_images(self, **images_dict)
 
 
-# # 获取好友列表
-# def friends_list(self):
-#     r = d(text="没有更多了")
-#     for i in range(20):
-#         if r.wait(timeout=0.1):
-#             break
-#         else:
-#             self.swipe_ext('up', 0.7)
-# 
-#     r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]')
-#     r.wait()
-#     elem = r.elem.getchildren()
-#     i = 1
-#     l = []
-#     for _ in elem:
-#         r = get_friend_info(_, i)
-#         i = r[0] + 1
-#         l.append(r)
-#     return l
-# 
-# 
-# def get_friend_info(friend, i):
-#     c = friend.getchildren()
-#     c1 = c[0].getchildren()
-#     if c1:
-#         c1 = c1[0].get('text')
-#         if c1:
-#             i = c1 = int(c1)
-#         else:
-#             c1 = i
-#     else:
-#         c1 = i
-#     c2 = c[2].getchildren()[0].getchildren()[0].get('text')
-#     c3 = c[4].getchildren()
-#     if c3:
-#         c3 = c3[0].get('text').strip('’')
-#         c3 = int(c3)
-#     else:
-#         c3 = -1
-#     return (c1, c2, c3)
-# 
-# 
-# def get_bounds(elem):
-#     return eval(elem.attrib.get('bounds').replace('][', ','))
-# 
-# 
-# # 获取当前可视范围
-# def friends_current(self, first=False, num=False):
-#     r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]')
-#     r.wait()
-#     elem = r.elem.getchildren()
-#     e0 = elem[0]
-#     p0 = get_bounds(e0)
-#     if first:
-#         return (get_friend_info(e0, 1), p0)
-#     l = []
-#     i = 2
-#     t1 = t2 = 0
-#     for e in elem[1:-1]:
-#         p = get_bounds(e)
-#         c1, c2 = (p[1]-p0[1], p[3]-p0[3])
-#         if c1 > 0:
-#             t1 += 1
-#         if c2 > 0:
-#             t2 += 1
-#         if all((c1>0, c2>0)):
-#             l.append((get_friend_info(e, i), p))
-#         i += 1
-#         (e0, p0) = (e, p)
-#     if num:
-#         return round((l[0][0][0]+l[-1][0][0])/2)
-#     return l  
-# 
-# 
-# # 识别手势与爱心
-# def energy_page(self, plus=False, threshold=0.9, timeout=5, **kwargs):
-#     r = self(text='总排行榜')
-#     r.wait(timeout=timeout)
-#     rs = self.images_match(self.images['hand'], threshold=threshold, **kwargs)
-#     for i in rs:
-#         self.click(*i['result'])
-#         energy_gain(self)
-#         r.wait(timeout=timeout)
-#     # screenshot self.click(*i['result'])t = np.asarray(self.screenshot())
-#     # rs = ac.find_all_template(screenshot, self.images['hand'], threshold=threshold)
-#     if plus:
-#         for i in self.images_match(self.images['heart'], threshold=threshold, **kwargs):
-#             rs.append(i)
-#             self.click(*i['result'])
-#             energy_gain(self, threshold=0.75, timeout=3)
-#             r.wait(timeout=timeout)
-#     return rs
-# 
-# 
-# def energy_gain(self, timeout=5, threshold=0.8, **kwargs):
-#     # self.images_match_click(self.images['gain'], threshold=threshold, **kwargs)
-#     # gain
-#     r = self(textContains="收集能量")
-#     if r.wait(timeout=timeout):
-#         r.click()
-#         while 1:
-#             time.sleep(0.3)
-#             if r.wait(timeout=0.2):
-#                 r.click()
-#             else:
-#                 break
-#     self.images_match_click(self.images['help'], threshold=threshold) 
-#     self.press('back')
-# 
-# 
-# # 翻页
-# def energy_next_page(self):
-#     self.swipe_ext('up', 0.5)
-# 
-# 
-# def alipay_start(self, init=False, max_tries=4):
-#     package='com.eg.android.AlipayGphone',
-#     self.unlock()
-#     if init:
-#         self.session(package)
-#         self.app_wait(package)
-#     else:
-#         self.app_start(package)
-#         self.app_wait(package)
-#         r = self(resourceId="com.alipay.android.phone.openplatform:id/tab_description")
-#         while 1:
-#             if max_tries <= 0:
-#                 self.alipay_start(init=True)
-#                 break
-#             elif r.wait(timeout=1):
-#                 r.click()
-#                 break
-#             else:
-#                 self.press('back')
-#                 max_tries -= 1
-# 
-# 
 # def alipay_energy(self, mode=2, start=1, end=90, max_tries=10, exclude=[],
 #         recircle=False, max_time=1500, start_time=0):
 #     
@@ -363,24 +262,6 @@ def load(self):
 # 
 #     # 收取自己的能量
 #     if mode == 0:
-#         tries = 1
-#         while 1:
-#             r = self(textContains="收集能量")
-#             if r.wait(timeout=10):
-#                 text = r.get_text()
-#                 r.click()
-#                 logger.info("自己：{}".format(text))
-#                 tries = 0
-#             else:
-#                 if not tries:
-#                     break
-#                 elif tries < 10:
-#                     tries += 1
-#                     print(tries)
-#                 else:
-#                     break
-#         self.screen_off()
-#         return
 # 
 #     elif mode == 1:
 #         r = self(text='合种')
