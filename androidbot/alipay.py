@@ -36,6 +36,14 @@ def get_bounds(elem):
     return eval(elem.attrib.get('bounds').replace('][', ','))
 
 
+def get_next_time(self):
+    pass
+
+
+def energy_friend_locate(self):
+    pass
+
+
 # 获取好友列表
 def friends_list(self):
     r = self(text="没有更多了")
@@ -51,13 +59,13 @@ def friends_list(self):
     i = 1
     l = []
     for _ in elem:
-        r = friends_info(_, i)
+        r = energy_friends_info(_, i)
         i = r[0] + 1
         l.append(r)
     return l
 
 
-def friends_info(friend, i):
+def energy_friends_info(friend, i):
     c = friend.getchildren()
     c1 = c[0].getchildren()
     if c1:
@@ -79,14 +87,14 @@ def friends_info(friend, i):
 
 
 # 获取当前可视范围
-def friends_current(self, first=False, num=False):
+def energy_friends_current(self, first=False, num=False):
     r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]')
     r.wait()
     elem = r.elem.getchildren()
     e0 = elem[0]
     p0 = get_bounds(e0)
     if first:
-        return (friends_info(e0, 1), p0)
+        return (energy_friends_info(e0, 1), p0)
     l = []
     i = 2
     t1 = t2 = 0
@@ -98,7 +106,7 @@ def friends_current(self, first=False, num=False):
         if c2 > 0:
             t2 += 1
         if all((c1>0, c2>0)):
-            l.append((friends_info(e, i), p))
+            l.append((energy_friends_info(e, i), p))
         i += 1
         (e0, p0) = (e, p)
     if num:
@@ -194,13 +202,38 @@ def energy_self(self, max_tries=10):
 
 
 def energy_love(self):
-    pass
+    r = self(text='合种')
+    r.click_exists(timeout=5)
+    r = self.xpath('//*[@resource-id="J-dom"]/android.view.View[1]/android.view.View[6]/android.view.View[1]/android.view.View[1]')
+    r.click_exists(timeout=5)
+    r = self(text="浇水")
+    if r.wait(timeout=3):
+        r.click()
+    else:
+        if self(text='在该合种浇水已达上限，明天继续哟').wait(timeout=1):
+            pass
+        self(text='知道了').click()
+
+    for i in range(1, 3):
+        r = self.xpath('//android.widget.ListView/android.view.View[{}]'.format(i))
+        r.click()
+        r = self(text='浇水')
+        if r.wait(timeout=4):
+            break
+        else:
+            self.press('back')
+
+    for _ in range(3):
+        for i in ['浇水', '66克', '浇水送祝福']:
+            self(text=i).click_exists(timeout=3)
+    self.press('back')
+    self.press('back')
 
 
 def alipay_energy(self, mode=0, plus=0):
     self.alipay_start()
     self(text='蚂蚁森林').click()
-    if mode in [1, 3]:
+    if mode in [1, 3, 5, 7]:
         energy_self(self)
         if mode == 1:
             self.press('back')
@@ -208,10 +241,16 @@ def alipay_energy(self, mode=0, plus=0):
             self.screen_off()
             return
 
-    if mode in [2, 3]:
+    if mode in [2, 3, 6, 7]:
         energy_love(self)
         if mode == 2:
+            self.press('back')
+            self.press('home')
+            self.screen_off()
             return
+        
+    if mode == 3:
+        return
 
     energy_friends(self)
     time.sleep(0.5)
@@ -264,32 +303,6 @@ def load(self):
 #     if mode == 0:
 # 
 #     elif mode == 1:
-#         r = self(text='合种')
-#         r.click_exists(timeout=5)
-#         r = self.xpath('//*[@resource-id="J-dom"]/android.view.View[1]/android.view.View[6]/android.view.View[1]/android.view.View[1]')
-#         r.click_exists(timeout=5)
-#         r = self(text="浇水")
-#         if r.wait(timeout=3):
-#             r.click()
-#         else:
-#             if self(text='在该合种浇水已达上限，明天继续哟').wait(timeout=1):
-#                 pass
-#             self(text='知道了').click()
-#         r = self(text='今日排行')
-#         if r.wait(timeout=5):
-#             r.click()
-#         r =self(text='颖灵')
-#         if r.wait(timeout=5):
-#             r.left().click_exists(timeout=3)
-#         for _ in range(3):
-#             for i in ['浇水', '66克', '浇水送祝福']:
-#                 self(text=i).click_exists(timeout=3)
-#         self.alipay_home()
-#         self.press('back')
-#         self.press('back')
-#         self.screen_off()
-#         return
-# 
 #     def noexists_raise(timeout=1):
 #         while 1:
 #             if r.wait(timeout=timeout):
@@ -455,11 +468,25 @@ def main():
     args = sys.argv
     d = Device()
     kwargs = {}
+    mode = 0
     if '--plus' in args:
         kwargs['plus'] = 1
+
+    if '--self' in args:
+        mode += 1
+
+    if '--love' in args:
+        mode += 2
+
+    if '--friend' in args:
+        mode += 4
+
+    kwargs['mode'] = mode
     d.alipay_energy(**kwargs)
 
 
 load(Device)
+
 if __name__ == "__main__":
     main()
+
