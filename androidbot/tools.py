@@ -88,7 +88,7 @@ class Device(Core):
         else:
             w, h = self.window_size()
             self.window_size_info = (w, h)
-        if h - y < 10 or w - x < 10:
+        if h - y < 250 or w - x < 250:
             return False
         return True
 

@@ -232,7 +232,10 @@ def energy_love(self):
 
 def alipay_energy(self, mode=0, plus=0):
     self.alipay_start()
-    self(text='蚂蚁森林').click()
+    r = self(text='蚂蚁森林')
+    if not r.wait(timeout=3):
+        self.alipay_start(init=1)
+    r.click()
     if mode in [1, 3, 5, 7]:
         energy_self(self)
         if mode == 1:
