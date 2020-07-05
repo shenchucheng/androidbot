@@ -247,6 +247,7 @@ def alipay_energy(self, mode=0, plus=0):
     while not self.is_onscreen(r2):
         energy_page(self, plus=plus)
         energy_next_page(self)
+    self.screen_off()
    
 
 def alipay_start(self, init=False, max_tries=4):
