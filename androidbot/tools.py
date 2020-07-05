@@ -124,6 +124,7 @@ class Device(Core):
 
     def images_match_click(self, match, threshold=0.85, **kwargs):
         rs = self.images_match(match, threshold=threshold, **kwargs)
+        print(rs, threshold)
         for i in rs:
             self.click(*i['result'])
 
