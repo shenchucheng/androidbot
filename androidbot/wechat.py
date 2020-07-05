@@ -9,7 +9,7 @@ import os
 import sys
 import time
 
-from .tools import Device, get logger
+from .tools import Device, get_bounds, logger
 
 
 def wechat_start(self):
@@ -34,7 +34,7 @@ def load(self):
 
 
 def main():
-    d = termux_local_connect(Device) or Device()
+    d = Device()
     d.wechat_start()
 
 
