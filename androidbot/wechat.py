@@ -9,7 +9,7 @@ import os
 import sys
 import time
 
-from .tools import Device, unlock, termux_local_connect, logger
+from .tools import Device, get logger
 
 
 def wechat_start(self):

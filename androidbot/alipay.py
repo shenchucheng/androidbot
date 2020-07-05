@@ -42,7 +42,7 @@ def energy_friend_locate(self):
 
 # 获取好友列表
 def friends_list(self):
-    r = self(text="没有更多了")
+    r = self(text='没有更多了')
     for i in range(20):
         if r.wait(timeout=1):
             break
@@ -157,7 +157,7 @@ def energy_next_page(self):
         
 def energy_friends(self, timeout=1, max_tries=5):
     tries = 0
-    r = self(text="查看更多好友")
+    r = self(text='查看更多好友')
     # noexists_raise()
     while not self.is_onscreen(r):
         if tries >= max_tries:
@@ -167,20 +167,27 @@ def energy_friends(self, timeout=1, max_tries=5):
     r.click()
 
 
+def energy_self_love(self, timeout=3):
+    r = self(text=" ")
+    t = 0
+    while r.click_exists(timeout=timeout):
+        t += 1
+    return t
+
+
 def energy_self(self, max_tries=10):
+    # energy_self_love(self)
     tries = 1
     while 1:
-        r = self(textContains="收集能量")
-        if r.wait(timeout=10):
-            text = r.get_text()
-            r.click()
-            logger.info("自己：{}".format(text))
+        r = self(textContains='收集能量')
+        if r.click_exists(timeout=10):
             tries = 0
         else:
             if not tries:
                 break
             elif tries < max_tries:
                 tries += 1
+                self.click(0,0)
                 print(tries)
             else:
                 break
@@ -191,7 +198,7 @@ def energy_love(self):
     r.click_exists(timeout=5)
     r = self.xpath('//*[@resource-id="J-dom"]/android.view.View[1]/android.view.View[6]/android.view.View[1]/android.view.View[1]')
     r.click_exists(timeout=5)
-    r = self(text="浇水")
+    r = self(text='浇水')
     if r.wait(timeout=3):
         r.click()
     else:
@@ -262,7 +269,7 @@ def alipay_start(self, init=False, max_tries=4):
     else:
         self.app_start(package)
         self.app_wait(package)
-        r = self(resourceId="com.alipay.android.phone.openplatform:id/tab_description")
+        r = self(resourceId='com.alipay.android.phone.openplatform:id/tab_description')
         while 1:
             if max_tries <= 0:
                 self.alipay_start(init=True)
@@ -304,6 +311,6 @@ def main():
 
 load(Device)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
 
