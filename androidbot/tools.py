@@ -30,6 +30,10 @@ def platform():
         return 'termux'
 
 
+def get_bounds(elem):
+    return eval(elem.attrib.get('bounds').replace('][', ','))
+
+
 class Device(Core):
     def __init__(self, serial_or_url=None, detect=True, **kwargs):
         if detect:
@@ -77,18 +81,38 @@ class Device(Core):
         else:
             print('unlock')
 
-
-    def is_onscreen(self, r):
-        x, y = r.center()
-        if y < 10 or x < 10:
-            return False
-        size = self.__dict__.get('windows_size_info')
-        if size:
-            w, h = size
-        else:
+    
+    def window_available_info(self):
+        try:
+            info = self._windows_available_info
+        except Exception as e:
             w, h = self.window_size()
-            self.window_size_info = (w, h)
-        if h - y < 250 or w - x < 250:
+            w0 = 10
+            w -= 10
+            bar = self(resourceId="com.android.systemui:id/status_bar")
+            nav = self(resourceId="com.android.systemui:id/nav_buttons")
+            if bar.wait(timeout=1):
+                h0 = bar.bounds()[3] + 10
+            else:
+                h0 = 10
+
+            if nav.wait(timeout=1):
+                h = nav.bounds()[1] -10
+            else:
+                h = h -10
+            info = self._windows_available_info = (w0, h0, w, h)
+            print('初始化完成')
+        return info
+        
+
+    def is_onscreen(self, r, info=None, timeout=1):
+        if info is None:
+           info = self.window_available_info() 
+        w0, h0, w, h = info 
+        if not r.wait(timeout=timeout):
+            return False
+        x, y = r.center()
+        if y < h0 or y > h or x < w0 or x > w:
             return False
         return True
 

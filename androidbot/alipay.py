@@ -10,7 +10,7 @@ import sys
 import time
 
 
-from .tools import Device, logger
+from .tools import Device, get_bounds, logger
 
 
 images_dict = {
@@ -32,10 +32,6 @@ def noexists_raise(timeout=1):
             tries += 1
 
       
-def get_bounds(elem):
-    return eval(elem.attrib.get('bounds').replace('][', ','))
-
-
 def get_next_time(self):
     pass
 
@@ -48,10 +44,10 @@ def energy_friend_locate(self):
 def friends_list(self):
     r = self(text="没有更多了")
     for i in range(20):
-        if r.wait(timeout=0.1):
+        if r.wait(timeout=1):
             break
         else:
-            self.swipe_ext('up', 0.7)
+            self.swipe_ext('up', 0.75)
 
     r = self.xpath('//*[@resource-id="__react-content"]/android.view.View[1]/android.view.View[2]')
     r.wait()
@@ -142,7 +138,7 @@ def energy_gain(self, timeout=3, threshold=0.8, **kwargs):
         r.click()
         while 1:
             time.sleep(0.3)
-            if r.wait(timeout=0.2):
+            if r.wait(timeout=1):
                 r.click()
             else:
                 break
@@ -159,27 +155,16 @@ def energy_next_page(self):
     self.swipe_ext('up', 0.5)
      
         
-def energy_friends(self, timeout=2, max_tries=5):
+def energy_friends(self, timeout=1, max_tries=5):
     tries = 0
     r = self(text="查看更多好友")
     # noexists_raise()
-    while 1:
-        if r.wait(timeout=timeout):
-            break
-        else:
-            if tries >= max_tries:
-                raise
-            tries += 1
-            self.swipe_ext('up', 0.6)
-    while 1:
-        if self.is_onscreen(r):
-            r.click()
-            break
-        else:
-            if tries >= max_tries:
-                raise
-            tries += 1
-            self.swipe_ext('up', 0.6)
+    while not self.is_onscreen(r):
+        if tries >= max_tries:
+            raise
+        tries += 1
+        self.swipe_ext('up', 0.6)
+    r.click()
 
 
 def energy_self(self, max_tries=10):
@@ -259,7 +244,7 @@ def alipay_energy(self, mode=0, plus=0):
     time.sleep(0.5)
     self(text='总排行榜').click()
     r2 = self(text='没有更多了')
-    while not (r2.wait(timeout=0.1) and self.is_onscreen(r2)):
+    while not self.is_onscreen(r2):
         energy_page(self, plus=plus)
         energy_next_page(self)
    
