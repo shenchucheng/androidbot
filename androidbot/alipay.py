@@ -135,10 +135,15 @@ def energy_gain(self, timeout=3, threshold=0.8, **kwargs):
     # gain
     r = self(textContains='收集能量')
     if r.wait(timeout=timeout):
+        p0 = r.center()
         r.click()
         while 1:
             time.sleep(0.3)
             if r.wait(timeout=1):
+                p = r.center()
+                if p == p0:
+                    break
+                p0 = p
                 r.click()
             else:
                 break
