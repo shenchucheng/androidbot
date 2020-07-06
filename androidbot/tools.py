@@ -108,13 +108,16 @@ class Device(Core):
     def is_onscreen(self, r, info=None, timeout=1):
         if info is None:
            info = self.window_available_info() 
-        w0, h0, w, h = info 
+        w0, h0, w, h = info
         if not r.wait(timeout=timeout):
             return False
-        x, y = r.center()
-        if y < h0 or y > h or x < w0 or x > w:
+        try:
+            x, y = r.center()
+            if y < h0 or y > h or x < w0 or x > w:
+                return False
+            return True
+        except Exception:
             return False
-        return True
 
     
     def images_match(self, match, **kwargs):

@@ -13,11 +13,13 @@ import time
 from .tools import Device, get_bounds, logger
 
 
+# 识别图片字典
 images_dict = {
-    'hand': 'hand.jpg',
+    'hand':  'hand.jpg',
     'heart': 'heart.jpg',
-    'help': 'help.jpg',
-    'gain': 'gain.jpg'
+    'help':  'help.jpg',
+    'help2': 'help1.jpg',
+    'gain':  'gain.jpg'
     }
 
 
@@ -122,11 +124,12 @@ def energy_page(self, plus=False, threshold=0.9, timeout=5, **kwargs):
     # screenshot self.click(*i['result'])t = np.asarray(self.screenshot())
     # rs = ac.find_all_template(screenshot, self.images['hand'], threshold=threshold)
     if plus:
-        for i in self.images_match(self.images['heart'], threshold=threshold, **kwargs):
-            rs.append(i)
-            self.click(*i['result'])
-            energy_gain(self, threshold=0.7, timeout=1)
-            r.wait(timeout=timeout)
+        for p in ['help', 'help1']:
+            for i in self.images_match(self.images[p], threshold=threshold, **kwargs):
+                rs.append(i)
+                self.click(*i['result'])
+                energy_gain(self, threshold=0.7, timeout=1)
+                r.wait(timeout=timeout)
     return rs
 
 
