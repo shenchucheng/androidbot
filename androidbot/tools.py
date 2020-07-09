@@ -35,19 +35,27 @@ def get_bounds(elem):
 
 
 class Device(Core):
-    def __init__(self, serial_or_url=None, detect=True, **kwargs):
-        if detect:
-            if platform() == 'termux':
-                serial_or_url = (_fix_wifi_addr('0.0.0.0'))
+    def __init__(self, serial_or_url=None, **kwargs):
+        if kwargs.get('termux'):
+            serial_or_url = (_fix_wifi_addr('0.0.0.0'))
         super().__init__(serial_or_url, **kwargs)
     
+
+    def package_start(self, package, init=False):
+        self.unlock()
+        if init:
+            self.session(package)
+            self.app_wait(package)
+        else:
+            self.app_start(package)
+            self.app_wait(package)
 
     def load_images(self, scr_dir=None, **kwargs):
         try:
             self.images
         except:
             self.images = {}
-        scr_dir = src_dir if scr_dir else _src_dir
+        scr_dir = scr_dir if scr_dir else _src_dir
         for k, v in kwargs.items():
             self.images[k] = np.asarray(
                 ac.imread(os.path.join(scr_dir, v))
@@ -65,8 +73,13 @@ class Device(Core):
 
 
     def unlock(self, passwd=[]):
-        """
-        屏幕解锁
+        """unlock the screen
+
+        Keyword Arguments:
+            passwd {list} -- password swipe points (default: {[]})
+
+        Returns:
+            [Bool] -- []
         """
         if not self.is_screen_on():
             self.screen_on()
@@ -78,14 +91,15 @@ class Device(Core):
             self.swipe_ext("up", 0.5)
             time.sleep(0.5)
             self.swipe_points(passwd, 0.1)
+            return True
         else:
-            print('unlock')
+            return 'unlock'
 
     
     def window_available_info(self):
         try:
             info = self._windows_available_info
-        except Exception as e:
+        except Exception:
             w, h = self.window_size()
             w0 = 10
             w -= 10
@@ -127,9 +141,15 @@ class Device(Core):
 
     def images_match_click(self, match, threshold=0.85, **kwargs):
         rs = self.images_match(match, threshold=threshold, **kwargs)
-        print(rs, threshold)
         for i in rs:
             self.click(*i['result'])
+
+
+class MaxtriesError(Exception):
+    def __init__(self, max_tries):
+        self.max_tries = max_tries
+        self.message = 'Up to max retries'.format(max_tries)
+
 
 def main():
     d = Device()
