@@ -306,7 +306,7 @@ def energy_love(self, **kwargs):
             break
         else:
             self.press('back')
-    g = kwargs.get('quality') or '10g'
+    g = kwargs.get('quality') or '10克'
     for _ in range(3):
         for i in ['浇水', g, '浇水送祝福']:
             self(text=i).click_exists(timeout=3)
@@ -441,7 +441,7 @@ def main():
 
     if '--love' in args:
         if '--quality_max' in args:
-            args['quality'] = '66g'
+            args['quality'] = '66克'
         mode += 2
 
     if '--friends' in args:
