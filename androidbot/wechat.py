@@ -13,9 +13,55 @@ from .tools import Device, get_bounds, logger
 
 
 def wechat_click_once(self, timeout=20):
-    path = [
-        (self(textContains='【东东农场】帮我点一下，你也可以得水滴哟！'))
-    ]
+    self.wechat_start()
+    r = self(resourceId="com.tencent.mm:id/e3x", text="哥哥点进去就可以了")
+    # if not r.click_exists(timeout=3):
+    #     for i in range(10):
+    #         self.swipe_ext('down', 0.5)
+    r.click(timeout=3)
+    r = self(textContains='聊天记录')
+    r.wait()
+    info  = {}
+    r = list(r)
+    r.sort(key=lambda x: x.center()[1])
+    r[-1].click()
+    r = self(textContains='东东农场')
+    r.wait()
+    info['东东农场'] = 0 
+    for i in r:
+        info['东东农场'] += 1
+        i.click()
+        self(resourceId="com.tencent.mm:id/dl").wait(timeout=timeout)
+        if self(text="去农场领水滴").wait(timeout=3):
+            logger.info('东东农场浇水成功')
+        else:
+            filename = '东东农场_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            logger.warn('无法确定是否浇水成功，将进行截图处理，文件名：{}'.format(filename))
+            self.screenshot(filename)
+        back_to_wechat(self)
+
+    self.swipe_ext('up', 0.2)
+
+    r = self(textContains='领养了一只爱宠')
+    r.wait()
+    info['东东萌宠'] = 0 
+    for i in r:
+        info['东东萌宠'] += 1
+        i.click()
+        self(resourceId="com.tencent.mm:id/dl").wait(timeout=timeout)
+        if self(text="好开心，谢谢帮忙哦！").wait(timeout=5):
+            logger.info('东东萌宠助力成功')
+        elif self(text="今日助力满员，谢谢你哦~"):
+            logger.warn('今日助力满员')
+            filename = '东东萌宠_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            self.screenshot(filename)
+        else:
+            filename = '东东萌宠_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            logger.warn('无法确定是否浇水成功，将进行截图处理，文件名：{}'.format(filename))
+            self.screenshot(filename)
+        back_to_wechat(self)
+
+    return info
 
 
 def back_to_wechat(self):
@@ -30,7 +76,7 @@ def wechat_click_everyday(self, timeout=10):
     #     for i in range(10):
     #         self.swipe_ext('down', 0.5)
     r.click(timeout=3)
-    r = self(textContains='群聊的聊天记录')
+    r = self(textContains='聊天记录')
     r.wait()
     info  = {}
     r = list(r)
@@ -92,10 +138,9 @@ def wechat_click_everyday(self, timeout=10):
             logger.info('多多牧场饲料已经领取过了')            
         else:
             filename = '多多牧场_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
-            logger.warn('无法确定是否浇水成功，将进行截图处理，文件名：{}'.format(filename))
+            logger.warn('无法确定是否帮助成功，将进行截图处理，文件名：{}'.format(filename))
             self.screenshot(filename)
         back_to_wechat(self)
-        
     return info
 
 
@@ -127,6 +172,7 @@ def wechat_start(self, max_tries=3, timeout=2):
 def load(self):
     self.wechat_start = wechat_start
     self.wechat_click_everyday = wechat_click_everyday
+    self.wechat_click_once = wechat_click_once
     self.wechat_star = wechat_star
 
 
@@ -136,10 +182,13 @@ def main():
     if 'star' in args:
         d.wechat_star()
         return
-    d.wechat_click_everyday()
+    # d.wechat_click_everyday()
+    d.wechat_click_once()
 
 
 load(Device)
+
+
 if __name__ == "__main__":
     main()
      
