@@ -16,7 +16,11 @@ def browser_sign_page(self, timeout=5):
     r = self(text='已签到')
     if not r.wait(timeout=timeout):
         self.swipe_ext('down', 0.5)
-        self(text="签到").click_exists(timeout=timeout)
+        if self(text="立即登录").click_exists(timeout=timeout):
+            time.sleep(2)
+        if self(text="签到").click_exists(timeout=timeout):
+            time.sleep(3)
+            self.press('back')
     return r.click()
 
 
@@ -115,10 +119,10 @@ def browser_sign_search(self):
 
     r = self.xpath('//*[@resource-id="com.android.browser:id/vo_hot_search_gv"]/android.widget.RelativeLayout[1]')
     r.click()
-    time.sleep(1)
+    time.sleep(2)
     self.press('back')
     time.sleep(1)
-    self(resourceId="com.android.browser:id/search").click()
+    self(resourceId="com.android.browser:id/search_hint").click()
     r = self.xpath('//*[@resource-id="com.android.browser:id/vo_hot_search_gv"]/android.widget.RelativeLayout[2]')
     r.click()
     time.sleep(1)
@@ -132,7 +136,7 @@ def browser_sign_advert(self):
     browser_sign_gain(self)
     r = self(text='去完成')
     if len(r) >= 2:
-        y = self(textContains='搜索想问的问题').center()[1]
+        y = self(textContains='看广告').center()[1]
         r = list(r)
         r.sort(key=lambda x: abs(y-x.center()[1]))
         r = r[0]
@@ -146,17 +150,20 @@ def browser_sign_advert(self):
             r.click()
     self.press('back')
 
+    return True
+
 
 def browser_sign(self, timeout=5):
     self.browser_start()
     r1 = browser_sign_video(self)
     r2 = browser_sign_article(self)
-    self(textContains='金币待领取').click_exists(timeout=timeout)
-    time.sleep(1)
     r3 = browser_sign_search(self)
-    if r3:
-        self(textContains='金币待领取').click_exists(timeout=timeout)
     r4 = browser_sign_advert(self)
+    browser_sign_page(self)
+    browser_sign_gain(self)
+    if self(text="看视频再领66金币").click_exists(timeout=timeout):
+        time.sleep(30)
+        self(resourceId="com.android.browser:id/tt_video_ad_close").click_exists(timeout=timeout)
     browser_sign_gain(self)
     return r1, r2, r3, r4
 
@@ -169,9 +176,15 @@ def get_rest(text):
 
 def browser_sign_gain(self, timeout=3):
     r = self(text="领取奖励")
+    t = 0
     while r.click_exists(timeout=timeout):
         self(textContains='知道').click_exists(timeout=timeout)
         time.sleep(1)
+        t += 1
+    if t:
+        time.sleep(3)
+
+
 def browser_start(self, init=False, timeout=5, max_tries=2):
     package='com.android.browser'
     self.package_start(package)
@@ -195,7 +208,14 @@ load(Device)
 
 def main():
     d = Device()
-    d.browser_sign()
+    for i in range(3):
+        try:
+            r = d.browser_sign()
+            print(r)
+            return
+        except:
+            continue
+        
 
 if __name__ == "__main__":
     main()

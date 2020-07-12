@@ -260,17 +260,19 @@ def energy_friends_to(self, num):
     
 
 def energy_self_love(self, timeout=3):
-    r = self(text=" ")
-    t = 0
-    while r.click_exists(timeout=timeout):
-        t += 1
-    return t
+    p = self.images.get('energyball')
+    if p is None:
+        self.load_images(energyball='energyball.jpg')
+        p = self.images['energyball']
+    return self.images_match_click(p, threshold=0.8)
 
 
 def energy_self(self, max_tries=10):
-    # energy_self_love(self)
     tries = 1
+    times = 0
     while 1:
+        energy_self_love(self)
+        times += 1
         r = self(textContains='收集能量')
         if r.click_exists(timeout=10):
             tries = 0
@@ -283,6 +285,9 @@ def energy_self(self, max_tries=10):
                 print(tries)
             else:
                 break
+    while times < 3:
+        energy_self_love(self)
+        times += 1
 
 
 def energy_love(self, **kwargs):

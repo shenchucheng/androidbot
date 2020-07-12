@@ -182,7 +182,7 @@ def main():
     if 'star' in args:
         d.wechat_star()
         return
-    # d.wechat_click_everyday()
+    d.wechat_click_everyday()
     d.wechat_click_once()
 
 
