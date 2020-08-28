@@ -21,7 +21,8 @@ images_dict = {
     'heart': 'heart.jpg',
     'help':  'help.jpg',
     'help1': 'help1.jpg',
-    'gain':  'gain.jpg'
+    'gain':  'gain.jpg',
+    'nomore': 'nomore.jpg'
     }
 
 
@@ -130,9 +131,13 @@ def energy_friends_current(self, first=False, num=False):
 
 # 识别手势与爱心
 def energy_page(self, plus=False, threshold=0.9, timeout=5, **kwargs):
-    r = self(text='总排行榜')
+    # r = self(text='总排行榜')
+    r = self(resourceId="com.alipay.mobile.nebula:id/h5_tv_title", text="蚂蚁森林")
     r.wait(timeout=timeout)
     rs = self.images_match(self.images['hand'], threshold=threshold, **kwargs)
+    if not rs:
+        if self.images_match(self.images['nomore'], threshold=threshold, **kwargs):
+            return 'STOP'
     for i in rs:
         self.click(*i['result'])
         energy_gain(self)
@@ -145,6 +150,7 @@ def energy_page(self, plus=False, threshold=0.9, timeout=5, **kwargs):
             self.click(*i['result'])
             energy_gain(self, threshold=0.7, timeout=1)
             r.wait(timeout=timeout)
+    
     return rs
 
 
@@ -169,11 +175,23 @@ def energy_gain(self, timeout=3, threshold=0.8, **kwargs):
             except:
                 break
     else:
-        if self(text='总排行榜').wait(timeout=1):
+        # if self(text='总排行榜').wait(timeout=1):
+        if self(resourceId="com.alipay.mobile.nebula:id/h5_tv_title", text="蚂蚁森林").wait(timeout=1):
             return
+        
     for p in ['help', 'help1']:
         self.images_match_click(self.images[p], threshold=threshold) 
     self.press('back')
+
+
+
+def is_friend_list_page(self):
+    """判断页面位置
+
+    Returns:
+        bool -- 当前页面是否位于好友列表
+    """
+    return True
 
 
 def energy_next_page(self, reverse=False, rate=0.5):
@@ -192,7 +210,8 @@ def energy_next_page(self, reverse=False, rate=0.5):
 def energy_friends_gain(self, plus=False, max_tries=30):
     r = self(text='没有更多了')
     while max_tries and not self.is_onscreen(r):
-        energy_page(self, plus=plus)
+        if energy_page(self, plus=plus) == 'STOP':
+            break
         energy_next_page(self)
         max_tries -= 1
 
@@ -209,7 +228,7 @@ def energy_friends(self, timeout=1, max_tries=5, **kwargs):
         self.swipe_ext('up', 0.6)
     r.click()
     time.sleep(0.5)
-    self(text='总排行榜').click()
+    # self(text='总排行榜').click()
     energy_friends_gain(self, plus=kwargs.get('plus'))
     if kwargs.get('recircle'):
         if kwargs.get('fix'):
@@ -290,18 +309,18 @@ def energy_self(self, max_tries=10):
         times += 1
 
 
-def energy_love(self, **kwargs):
+def energy_love(self, timeout=10, **kwargs):
     r = self(text='合种')
-    r.click_exists(timeout=5)
+    r.click(timeout=timeout)
     r = self.xpath('//*[@resource-id="J-dom"]/android.view.View[1]/android.view.View[6]/android.view.View[1]/android.view.View[1]')
-    r.click_exists(timeout=5)
-    r = self(text='浇水')
-    if r.wait(timeout=3):
-        r.click()
-    else:
-        if self(text='在该合种浇水已达上限，明天继续哟').wait(timeout=1):
-            pass
+    r.click(timeout=timeout)
+    if self(text='浇水').click_exists(timeout=4):
+        pass
+    elif self(text='在该合种浇水已达上限，明天继续哟').wait(timeout=3):
         self(text='知道了').click()
+    else:
+        logger.warn('蚂蚁森林合种浇水错误')
+        return False
 
     for i in range(1, 3):
         r = self.xpath('//android.widget.ListView/android.view.View[{}]'.format(i))
@@ -402,6 +421,15 @@ def alipay_energy(self, mode=0, plus=0, **kwargs):
     duration = time.time() - start_time
     return duration
 
+
+def alipay_fruit(self, timeout=5):
+    self.alipay_start()
+    self(resourceId="com.alipay.mobile.socialwidget:id/social_tab_text").click(timeout=timeout)
+    self(resourceId="com.alipay.mobile.socialwidget:id/item_memo", text="[小程序]饿了么果园").click(timeout=timeout)
+    self(resourceId="com.alipay.mobile.chatapp:id/biz_title", text="快帮我助力免费领3斤水果").click(timeout=timeout)
+    self(text="帮TA助力").click(timeout=10)
+
+
 def alipay_start(self, init=False, max_tries=4):
     package='com.eg.android.AlipayGphone'
     self.unlock()
@@ -427,6 +455,7 @@ def load(self):
     self.alipay_start  = alipay_start
     self.alipay_energy = alipay_energy
     self.alipay_sign   = alipay_sign
+    self.alipay_fruit  = alipay_fruit
     self.images = {}
     self.load_images(self, **images_dict)
 
@@ -438,6 +467,9 @@ def main():
     mode = 0
     if len(args) > 1 and args[1] == 'sign':
         d.alipay_sign()
+        return
+    if len(args) > 1 and args[1] == 'fruit':
+        d.alipay_fruit()
         return
     if '--plus' in args:
         kwargs['plus'] = 1
