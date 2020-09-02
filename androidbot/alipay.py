@@ -22,7 +22,8 @@ images_dict = {
     'help':  'help.jpg',
     'help1': 'help1.jpg',
     'gain':  'gain.jpg',
-    'nomore': 'nomore.jpg'
+    'nomore': 'nomore.jpg',
+    'nextfriend': 'nextfriend.jpg'
     }
 
 
@@ -176,12 +177,18 @@ def energy_gain(self, timeout=3, threshold=0.8, **kwargs):
                 break
     else:
         # if self(text='总排行榜').wait(timeout=1):
+        if self(textContains="startapp?appId").wait(timeout=5):
+            self.press('back')
+            return
         if self(resourceId="com.alipay.mobile.nebula:id/h5_tv_title", text="蚂蚁森林").wait(timeout=1):
             return
         
     for p in ['help', 'help1']:
-        self.images_match_click(self.images[p], threshold=threshold) 
-    self.press('back')
+        self.images_match_click(self.images[p], threshold=threshold)
+    if self.images_match_click(self.images['nextfriend'], threshold=threshold):
+        energy_gain(self, timeout=timeout, threshold=threshold, **kwargs)
+    else:
+        self.press('back')
 
 
 
@@ -219,6 +226,11 @@ def energy_friends_gain(self, plus=False, max_tries=30):
 def energy_friends(self, timeout=1, max_tries=5, **kwargs):
     tries = 0
     start_time = kwargs.get('start_time') or time.time()
+    for i in range(5):
+        if self.images_match_click(self.images['nextfriend'], threshold=0.85):
+            energy_gain(self)
+            return
+        time.sleep(1)
     r = self(text='查看更多好友')
     # noexists_raise()
     while not self.is_onscreen(r):
@@ -244,6 +256,7 @@ def energy_friends(self, timeout=1, max_tries=5, **kwargs):
                     energy_next_page(self, True, 0.7)
                     time.sleep(0.2)
                 energy_friends_gain(self)
+
 
 
 def energy_friends_walk(self, num):
@@ -383,7 +396,7 @@ def alipay_sign(self, init=True, timeout=3, **kwargs):
 
 def alipay_energy_start(self):
     self.alipay_start()
-    r = self(text='蚂蚁森林')
+    r = self(resourceId="com.alipay.android.phone.openplatform:id/app_text", text="蚂蚁森林")
     if not r.wait(timeout=3):
         self.alipay_start(init=1)
     r.click()
