@@ -9,8 +9,12 @@ import os
 import sys
 import time
 
+from os.path import join
 from .tools import Device, get_bounds, logger
-
+try:
+    from .config import storage_path
+except:
+    storage_path = '/root/Pictures'
 
 def wechat_click_once(self, timeout=20):
     self.wechat_start()
@@ -36,6 +40,7 @@ def wechat_click_once(self, timeout=20):
             logger.info('东东农场浇水成功')
         else:
             filename = '东东农场_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            filename = join(storage_path, filename)
             logger.warn('无法确定是否浇水成功，将进行截图处理，文件名：{}'.format(filename))
             self.screenshot(filename)
         back_to_wechat(self)
@@ -54,9 +59,11 @@ def wechat_click_once(self, timeout=20):
         elif self(text="今日助力满员，谢谢你哦~"):
             logger.warn('今日助力满员')
             filename = '东东萌宠_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            filename = join(storage_path, filename)
             self.screenshot(filename)
         else:
             filename = '东东萌宠_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            filename = join(storage_path, filename)
             logger.warn('无法确定是否浇水成功，将进行截图处理，文件名：{}'.format(filename))
             self.screenshot(filename)
         back_to_wechat(self)
@@ -93,6 +100,7 @@ def wechat_click_everyday(self, timeout=10):
             logger.info('东东农场浇水成功')
         else:
             filename = '东东农场_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            filename = join(storage_path, filename)
             logger.warn('无法确定是否浇水成功，将进行截图处理，文件名：{}'.format(filename))
             self.screenshot(filename)
         back_to_wechat(self)
@@ -108,6 +116,7 @@ def wechat_click_everyday(self, timeout=10):
             logger.info('已经打过工了')
         else:
             filename = '财富岛_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            filename = join(storage_path, filename)
             logger.warn('无法确定是否浇水成功，将进行截图处理，文件名：{}'.format(filename))
             self.screenshot(filename)
         back_to_wechat(self)
@@ -122,6 +131,7 @@ def wechat_click_everyday(self, timeout=10):
             logger.info('多多果园已经浇过水了')
         else:
             filename = '多多果园_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            filename = join(storage_path, filename)
             logger.warn('无法确定是否浇水成功，将进行截图处理，文件名：{}'.format(filename))
             # self.screenshot(filename)
         back_to_wechat(self)
@@ -138,6 +148,7 @@ def wechat_click_everyday(self, timeout=10):
             logger.info('多多牧场饲料已经领取过了')            
         else:
             filename = '多多牧场_{}.jpg'.format(time.strftime('%Y%m%d%H%M%S'))
+            filename = join(storage_path, filename)
             logger.warn('无法确定是否帮助成功，将进行截图处理，文件名：{}'.format(filename))
             self.screenshot(filename)
         back_to_wechat(self)
