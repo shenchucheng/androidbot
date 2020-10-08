@@ -40,7 +40,6 @@ class Device(Core):
             serial_or_url = (_fix_wifi_addr('0.0.0.0'))
         super().__init__(serial_or_url, **kwargs)
     
-
     def package_start(self, package, init=False):
         self.unlock()
         if init:
@@ -61,16 +60,13 @@ class Device(Core):
                 ac.imread(os.path.join(scr_dir, v))
             )
 
-
     def is_screen_on(self):
         return self.info.get('screenOn')
-
 
     def is_lock(self):
         packages = {'com.android.systemui', 'android'}
         package = self.info.get('currentPackageName')
         return package in packages 
-
 
     def unlock(self, passwd=[]):
         """unlock the screen
@@ -94,8 +90,7 @@ class Device(Core):
             return True
         else:
             return 'unlock'
-
-    
+  
     def window_available_info(self):
         try:
             info = self._windows_available_info
@@ -118,7 +113,6 @@ class Device(Core):
             print('初始化完成')
         return info
         
-
     def is_onscreen(self, r, info=None, timeout=1):
         if info is None:
            info = self.window_available_info() 
@@ -132,12 +126,10 @@ class Device(Core):
             return True
         except Exception:
             return False
-
     
     def images_match(self, match, **kwargs):
         scr = np.asarray(self.screenshot())
         return ac.find_all_template(scr, match, **kwargs)
-
 
     def images_match_click(self, match, threshold=0.85, **kwargs):
         rs = self.images_match(match, threshold=threshold, **kwargs)
@@ -147,10 +139,74 @@ class Device(Core):
             times += 1
         return times
 
+    def back(self, times=1):
+        for _ in range(times):
+            self.press('back')
+            time.sleep(0.3)
+
+
+class Images:
+    images_dict = {}
+    srcdir = _src_dir
+    def __init__(self, srcdir = '', images_dict = None):
+        if srcdir:
+            self.srcdir = srcdir
+        if images_dict:
+            self.images_dict = images_dict
+    def __getattr__(self, name):
+        Images = super().__self__
+        if self.images_dict.get(name) == Images.images_dict.get(name) and \
+            self.srcdir == Images.srcdir:
+            __self = Images
+        else:
+            __self = self
+        try:
+            __path = __self.images_dict[name]
+            __path = os.path.join(__self.srcdir, __path)
+            setattr(__self, name, np.asanyarray(
+                ac.imread(__path)
+            ))
+        except KeyError:
+            logger.exception('Key {} has not existed in image_dict'.format(name))
+        except RuntimeError:
+            logger.exception('Please check the file path or the srcdir', exc_info=True)
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return super().__getattribute__(name)
+
+
+class App(object):
+    def __init__(self, package, device: Device = None,):
+        self.device = device or Device()
+        self.__package = package
+    
+    @property
+    def name(self):
+        return self.__package
+
+    def start(self, init=False):
+        self.device.unlock()
+        if init:
+            self.device.session(self.name)
+            self.device.app_wait(self.name)
+        else:
+            self.device.app_start(self.name)
+            self.device.app_wait(self.name)
+            if not self.check_start():
+                self.start(init=True)
+    
+    def check_start(self):
+        logger.warn('Method for checking status when app {} start is not set'.format(
+            self.name
+        ))
+        return True
+
+
 class MaxtriesError(Exception):
     def __init__(self, max_tries):
         self.max_tries = max_tries
-        self.message = 'Up to max retries'.format(max_tries)
+        self.message = 'Max retries ({} times)'.format(max_tries)
 
 
 def main():

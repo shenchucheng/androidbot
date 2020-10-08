@@ -12,19 +12,150 @@ import time
 from threading import Thread
 from collections.abc import Iterable
 
-from .tools import Device, get_bounds, MaxtriesError, logger
+from .tools import Images, App, Device, get_bounds, MaxtriesError, logger
 
+
+__d = {
+    'hand'       : 'hand.jpg',
+    'heart'      : 'heart.jpg',
+    'help'       : 'help.jpg',
+    'help1'      : 'help1.jpg',
+    'gain'       : 'gain.jpg',
+    'nomore'     : 'nomore.jpg',
+    'nextfriend' : 'nextfriend.jpg'
+}
+
+images = Images(images_dict=__d)
+
+
+class AppAlipay(App):
+    def __init__(self, device: Device=None):
+        super().__init__('com.eg.android.AlipayGphone', device)
+
+    def check_start(self, max_tries=3):
+        r = self.device(resourceId='com.alipay.android.phone.openplatform:id/tab_description')
+        while max_tries > 0:
+            if r.wait(timeout=1):
+                r.click()
+                return True
+            else:
+                self.device.back()
+                max_tries -= 1
+
+    def energy(self, mode: int = 7, quality=None, **kwargs):
+        self.energy_page()
+        if mode in [1, 3, 5, 7]:
+            self._energy_self(**kwargs)
+
+        if mode in [2, 3, 6, 7]:
+            self._energy_love(quality=quality, **kwargs)
+
+        if mode in [4, 5, 6, 7]:
+            self._energy_friends(**kwargs)
+
+        self.device.back(2)
+
+    def energy_page(self, timeout=10, retry=0):
+        self.start()
+        r = self.device(resourceId="com.alipay.android.phone.openplatform:id/app_text", text="蚂蚁森林")
+        r.click_exists(timeout=timeout)
+        if self.device(text="背包").wait(timeout=5):
+            logger.debug('进入蚂蚁森林页面')
+        else:
+            logger.warn('无法定位蚂蚁森林页面识别元素')
+            if not retry:
+                self.energy_page(timeout=timeout, retry=1)
+
+    
+    def _energy_self(self, patrol = False, duration: int = 180, **kwargs):
+        start = time.time()
+        stop = False
+        while time.time() - start <= duration:
+            r = self.device(textContains='收集能量')
+            if r.wait(timeout=10):
+                logger.info(r.get_text())
+                r.click_exists()
+                stop = True
+            elif not patrol:
+                break
+            elif patrol == 2 and stop:
+                break
+            self.device.click(0,0)  # 保持常亮 
+
+    def _energy_love(self, timeout=5, quality=None, **kwargs):
+        if not self.device(text='合种').click_exists(timeout=timeout):
+            return
+        if not self.device(text="今日排行").wait(timeout=timeout):
+            return
+        r = self.device.xpath('//*[@resource-id="J-dom"]/android.view.View[1]/android.view.View[6]/android.view.View[1]/android.view.View[1]')
+        if r.click_exists(timeout=5):
+            r = self.device(text='浇水')
+            if r.wait(timeout=3):
+                r.click()
+                logger.debug('合种浇水成功')
+            else:
+                if self.device(text='在该合种浇水已达上限，明天继续哟').wait(timeout=1):
+                    logger.debug('今日已经浇过水了')
+                self.device(text='知道了').click_exists()
+
+        for i in [2, 1]:
+            r = self.device.xpath('//android.widget.ListView/android.view.View[{}]'.format(i))
+            if r.wait(timeout=timeout):
+                r.click()
+            r = self.device(text='浇水')
+            if r.wait(timeout=4):
+                break
+            else:
+                self.device.press('back')
+        quality = quality or '10克'
+        for _ in range(3):
+            for i in ['浇水', quality, '浇水送祝福']:
+                self.device(text=i).click_exists(timeout=3)
+                time.sleep(0.5)
+            logger.debug('帮忙浇水{}'.format(quality))
+        self.device.back(2)
+
+    def _energy_friends(self, timeout: int = 3, **kwargs):
+        r = self.device(textContains='收集能量')
+        while self.nextfriend:
+            p0 = (0, 0)
+            while r.wait(timeout=timeout):
+                try:
+                    p1 = r.center()
+                except:
+                    continue
+                if p0 == p1:
+                    break
+                p0 = p1
+                if r.click_exists():
+                    time.sleep(0.5)
+        if self.device(textContains="startapp?appId").wait(timeout=5):
+            self.device.back()
+            return
+        if self.device(resourceId="com.alipay.mobile.nebula:id/h5_tv_title", text="蚂蚁森林").wait(timeout=1):
+            return
+
+    @property
+    def nextfriend(self, threshold=0.8, **kwargs):
+        r = self.device.images_match_click(images.nextfriend, threshold=threshold, **kwargs)
+        if r > 1:
+            logger.warning('支付宝蚂蚁森林逛一逛匹配多个结果')
+        return bool(r)
+    
+    def getnextfriendposition(self):
+        if not hasattr(self, '__position'):
+            self.__position = None
+        if not self.__position:
+            Thread(self.position)
+    
+    def position(self):
+        r = self.device.images_match(images.nextfriend, threshold=0.8)
+        for _ in r:
+            self.__position = _['result']
+        
 
 # 识别图片字典
-images_dict = {
-    'hand':  'hand.jpg',
-    'heart': 'heart.jpg',
-    'help':  'help.jpg',
-    'help1': 'help1.jpg',
-    'gain':  'gain.jpg',
-    'nomore': 'nomore.jpg',
-    'nextfriend': 'nextfriend.jpg'
-    }
+
 
 
 # def noexists_raise(timeout=1, max_tries=5):
@@ -503,7 +634,7 @@ def main():
     d.alipay_energy(**kwargs)
 
 
-load(Device)
+# load(Device)
 
 if __name__ == '__main__':
     main()
