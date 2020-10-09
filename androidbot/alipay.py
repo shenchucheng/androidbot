@@ -55,6 +55,18 @@ class AppAlipay(App):
 
         self.device.back(2)
 
+    def energy_self(self, **kwargs):
+        self.energy_page()
+        self._energy_self(**kwargs)
+
+    def energy_love(self, **kwargs):
+        self.energy_page()
+        self._energy_love(**kwargs)
+
+    def energy_friends(self, **kwargs):
+        self.energy_page()
+        self._energy_friends(**kwargs)
+
     def energy_page(self, timeout=10, retry=0):
         self.start()
         r = self.device(resourceId="com.alipay.android.phone.openplatform:id/app_text", text="蚂蚁森林")
@@ -83,6 +95,10 @@ class AppAlipay(App):
             self.device.click(0,0)  # 保持常亮 
 
     def _energy_love(self, timeout=5, quality=None, **kwargs):
+        if kwargs.get('quality_max'):
+            quality = 2
+        elif kwargs.get('quality_min'):
+            quality = 1
         if not self.device(text='合种').click_exists(timeout=timeout):
             return
         if not self.device(text="今日排行").wait(timeout=timeout):
@@ -97,6 +113,15 @@ class AppAlipay(App):
                 if self.device(text='在该合种浇水已达上限，明天继续哟').wait(timeout=1):
                     logger.debug('今日已经浇过水了')
                 self.device(text='知道了').click_exists()
+        
+        try:
+            quality = [None, '10克',  '66克'][quality]
+        except Exception:
+            pass
+
+        if quality is None:
+            self.device.back(1)
+            return
 
         for i in [2, 1]:
             r = self.device.xpath('//android.widget.ListView/android.view.View[{}]'.format(i))
@@ -107,12 +132,18 @@ class AppAlipay(App):
                 break
             else:
                 self.device.press('back')
-        quality = quality or '10克'
         for _ in range(3):
+            _ = 0
             for i in ['浇水', quality, '浇水送祝福']:
-                self.device(text=i).click_exists(timeout=3)
-                time.sleep(0.5)
-            logger.debug('帮忙浇水{}'.format(quality))
+                if self.device(text=i).click_exists(timeout=3):
+                    time.sleep(0.5)
+                    _ += 1
+                else:
+                    break
+            if _ == 3:
+                logger.debug('帮忙浇水{}'.format(quality))
+            else:
+                logger.warning('帮忙浇水失败')
         self.device.back(2)
 
     def _energy_friends(self, timeout: int = 3, **kwargs):
@@ -152,7 +183,12 @@ class AppAlipay(App):
         r = self.device.images_match(images.nextfriend, threshold=0.8)
         for _ in r:
             self.__position = _['result']
-        
+
+
+if __name__ == '__main__':
+    from fire import Fire
+    Fire(AppAlipay())
+
 
 # 识别图片字典
 
@@ -636,6 +672,6 @@ def main():
 
 # load(Device)
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
 
