@@ -8,7 +8,7 @@
 import time
 import logging
 import os
-import aircv as ac
+# import aircv as ac
 import numpy as np
 
 from uiautomator2 import _fix_wifi_addr
@@ -22,6 +22,20 @@ _passwd = [(0.25, 0.611),(0.227, 0.841),(0.772, 0.864)]
 _src_dir = os.path.abspath(__file__)
 _src_dir = os.path.dirname(_src_dir)
 _src_dir = os.path.join(_src_dir, 'src')
+
+
+class Import_lazy:
+    def __init__(self, name):
+        self.name = name
+        self.package = None
+
+    def __getattr__(self, name):
+        if not self.package:
+            self.package = __import__(self.name)
+        self.__dict__[name] = self.package.__getattribute__(name)
+        return super().__getattribute__(name)
+
+ac = Import_lazy('aircv')
 
 
 def platform():
