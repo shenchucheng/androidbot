@@ -1,0 +1,4 @@
+0 8 * * * python3 -m androidbot.alipay energy_love --quality_max
+0 23 * * * python3 -m androidbot.alipay sign --retry 1
+*/5 7 * * * python3 -m androidbot.alipay energy --mode 5
+30 08-23 * * * python3 -m androidbot.alipay energy --mode 5 --plus
