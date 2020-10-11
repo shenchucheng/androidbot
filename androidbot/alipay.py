@@ -41,6 +41,61 @@ class AppAlipay(App):
             else:
                 self.device.back()
                 max_tries -= 1
+    
+    def sign(self, timeout=5, retry=1):
+        self.start()
+        if not self.__sign(timeout=timeout) and retry:
+            self.sign(timeout=timeout, retry=retry-1)
+        else:
+            logger.warning('支付宝签到失败')
+            
+    def __sign(self, timeout=5):
+        r = self.device(
+            resourceId="com.alipay.android.phone.wealth.home:id/tab_description",
+            text='我的'
+        )  # 支付宝个人中心
+        if not r.click_exists(timeout=timeout):
+            return
+        time.sleep(0.5)
+        if not self.device.xpath('//*[@resource-id="com.alipay.android.phone.wealth.home:id'\
+            '/asset_home_list"]/android.widget.LinearLayout[2]/android.widget.RelativeLayout[1]/'\
+            'android.view.ViewGroup[1]').click_exists(timeout=timeout):
+            return
+        if not self.device(text="领积分").click_exists(timeout=timeout):
+            return
+        __retry = 0
+        r = self.device(text="可用积分")
+        r.wait(timeout=timeout)
+        times = 0
+        while 1:
+            start = time.time()
+            times += 1
+            if self.device(text="点击领取").click_exists(timeout=timeout):
+                logger.debug('积分收取成功')
+            elif time.time() - start >= timeout:
+                break
+            if times > 40:
+                break
+            elif times > 10:
+                try:
+                    __last = ''
+                    __last = self.device(text="可用积分").from_parent().child()[1].get_text()
+                    if last == __last:
+                        break
+                except Exception:
+                    last = __last
+        if self.device(textContains='家庭积分').click_exists(timeout=timeout):
+            self.device(text="家庭积分").wait(timeout=timeout)
+            while 1:
+                start = time.time()
+                if self.device(text="积分").click_exists(timeout=timeout):
+                    continue
+                elif time.time() - start >= timeout:
+                    break
+            self.device.back()
+        self.device.back(2)
+        logger.info('支付宝签到成功')
+        return True
 
     def energy(self, mode: int = 7, quality=None, **kwargs):
         self.energy_page()
@@ -541,7 +596,7 @@ def alipay_sign(self, init=True, timeout=3, **kwargs):
     if not self(text="领积分").click_exists(timeout=timeout):
         self.press('back')
         return 0
-
+    self.device(text="家庭积分").wait(timeout=timeout)
     while self(text="点击领取").click_exists(timeout=timeout):
         continue
     time.sleep(3)
