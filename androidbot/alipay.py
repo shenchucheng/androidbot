@@ -10,10 +10,14 @@ import sys
 import time
 
 from threading import Thread
+from os.path import join
 from collections.abc import Iterable
 
 from .tools import Images, App, Device, get_bounds, MaxtriesError, logger
-
+try:
+    from .config import storage_path
+except:
+    storage_path = "."
 
 __d = {
     'hand'       : 'hand.jpg',
@@ -41,10 +45,53 @@ class AppAlipay(App):
             else:
                 self.device.back()
                 max_tries -= 1
-    
+
+    def msg(self, timeout=5, retry=1):
+        self.start()
+        if not self.__msg(timeout=timeout) and retry:
+            return self.msg(timeout=timeout, retry=retry-1)
+
+    def __msg(self, timeout):
+        if not self.device(
+            resourceId="com.alipay.mobile.socialwidget:id/social_tab_text"
+        ).click_exists(timeout=3):
+            return 
+        if not self.device(
+            resourceId="com.alipay.mobile.socialwidget:id/item_name", text="颖灵"
+        ).click_exists(timeout=3):
+            return
+
+        src = self.device(textContains="肥料到手")
+        src.wait(timeout=timeout)
+        for i in src:
+            i.click(timeout=timeout)
+            self.device(text="为Ta助力").wait(timeout=timeout)
+            self.device(text="为Ta助力").click(timeout=timeout)
+            self.device(text="去种果树").wait(timeout=timeout)
+            filename = "芭芭农场_{}.jpg".format(time.strftime("%Y_%m_%d_%H_%M_%S"))
+            filename = join(storage_path, filename)
+            self.device.screenshot(filename)
+            self.device(text="").click_exists(timeout=timeout)
+            self.device(textContains="肥料到手").wait(timeout=timeout)
+
+        src = self.device(
+            resourceId="com.alipay.mobile.chatapp:id/biz_title", text="送你1箱免费水果"
+        )
+        src.wait(timeout=timeout)
+        for i in src:
+            i.click(timeout=timeout)
+            self.device(text="帮TA助力").wait(timeout=timeout)
+            self.device(text="帮TA助力").click_exists(timeout=timeout)
+            filename = "饿了吗果园_{}.jpg".format(time.strftime("%Y_%m_%d_%H_%M_%S"))
+            filename = join(storage_path, filename)
+            self.device.screenshot(filename)
+            self.device(text="").click_exists(timeout=timeout)
+
+        return True
+        
     def sign(self, timeout=5, retry=1):
         self.start()
-        if not self.__sign(timeout=timeout) and retry:
+        if not self.__sign(timeout=timeout) and retry>0:
             self.sign(timeout=timeout, retry=retry-1)
         else:
             logger.warning('支付宝签到失败')
@@ -250,3 +297,4 @@ class AppAlipay(App):
 if __name__ == '__main__':
     from fire import Fire
     Fire(AppAlipay())
+    # AppAlipay().msg()
