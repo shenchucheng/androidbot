@@ -10,11 +10,20 @@ import sys
 import time
 
 from os.path import join
-from .tools import Device, get_bounds, logger
+
+from numpy import imag
+from .tools import Device, get_bounds, logger, Images
 try:
     from .config import storage_path
 except:
     storage_path = "."
+
+__d = {
+    'wechat_accept_work'       : 'wechat_accept_work.jpg',
+}
+
+images = Images(images_dict=__d)
+
 
 def wechat_click_once(self, timeout=20):
     self.wechat_start()
@@ -76,7 +85,7 @@ def back_to_wechat(self):
     self.app_wait("com.tencent.mm")
 
 
-def work_ervery(self, times: int = 0):
+def work_erveryday(self: Device, times: int = 0):
     self.wechat_start()
     r = self(resourceId="com.tencent.mm:id/fzg", text="打工工专用用")
     r.click(timeout=3)
@@ -89,9 +98,12 @@ def work_ervery(self, times: int = 0):
     r.wait()
     r = list(r)[times]
     r.click()
-    time.sleep(5)
+    for i in range(3):
+        time.sleep(3)
+        if self.images_match_click(images.wechat_accept_work):
+            break
     self.click(0.5, 0.689)
-    time.sleep(3)
+    time.sleep(1)
     filename = "京喜工厂_{}.jpg".format(time.strftime("%Y_%m_%d_%H_%M_%S"))
     filename = join(storage_path, filename)
     self.screenshot(filename)
@@ -236,7 +248,7 @@ def load(self):
     self.wechat_click_everyday = wechat_click_everyday
     self.wechat_click_once = wechat_click_once
     self.wechat_star = wechat_star
-    self.work_ervery = work_ervery
+    self.work_erveryday = work_erveryday
 
 
 def main():
