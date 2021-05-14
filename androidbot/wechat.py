@@ -76,6 +76,27 @@ def back_to_wechat(self):
     self.app_wait("com.tencent.mm")
 
 
+def work_ervery(self, times: int = 0):
+    self.wechat_start()
+    r = self(resourceId="com.tencent.mm:id/fzg", text="打工工专用用")
+    r.click(timeout=3)
+    r = self(textContains="聊天记录")
+    r.wait()
+    r = list(r)
+    r.sort(key=lambda x: x.center()[1])
+    r[-1].click()
+    r = self(textContains="【1.09上新】")
+    r.wait()
+    r = list(r)[times]
+    r.click()
+    time.sleep(5)
+    self.click(0.5, 0.689)
+    time.sleep(3)
+    filename = "京喜工厂_{}.jpg".format(time.strftime("%Y_%m_%d_%H_%M_%S"))
+    filename = join(storage_path, filename)
+    self.screenshot(filename)
+    back_to_wechat(self)
+
 def wechat_click_everyday(self, timeout=10):
     self.wechat_start()
     r = self(resourceId="com.tencent.mm:id/fzg", text="每天必点")
@@ -215,6 +236,7 @@ def load(self):
     self.wechat_click_everyday = wechat_click_everyday
     self.wechat_click_once = wechat_click_once
     self.wechat_star = wechat_star
+    self.work_ervery = work_ervery
 
 
 def main():
