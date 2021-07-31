@@ -191,13 +191,19 @@ class Images:
 
 
 class App(object):
-    def __init__(self, package, device: Device = None,):
+
+    _package = None
+    
+    def __init__(self, package = None, device: Device = None,):
         self.device = device or Device()
-        self.__package = package
+        if package:
+            self._package = package
+        elif self._package is None:
+            raise ValueError("package must not be none")
     
     @property
     def name(self):
-        return self.__package
+        return self._package
 
     def start(self, init=False):
         self.device.unlock()
